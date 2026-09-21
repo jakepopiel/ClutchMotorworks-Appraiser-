@@ -79,7 +79,7 @@ common_issues must have between 2 and 4 entries (not counting top_issue). inspec
 async function callGemini(model, apiKey, prompt, useSearch) {
   const body = {
     contents: [{ role: 'user', parts: [{ text: prompt }] }],
-    generationConfig: { temperature: 0.2, maxOutputTokens: 3584 }
+    generationConfig: { temperature: 0, maxOutputTokens: 3584 }
   };
   if (useSearch) body.tools = [{ google_search: {} }];
 
