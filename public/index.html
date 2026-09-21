@@ -696,12 +696,43 @@ function renderAiResult(data, vehicle) {
   aiResult.classList.add('active');
 }
 
+function cacheKeyFor(d) {
+  return 'appraiserCache:' + [d.year, d.make, d.model, d.trim, d.mileage, d.price, d.condition]
+    .map(v => (v === null || v === undefined) ? '' : String(v).trim().toLowerCase())
+    .join('|');
+}
+
+function getCached(key) {
+  try {
+    const raw = localStorage.getItem(key);
+    if (!raw) return null;
+    const entry = JSON.parse(raw);
+    const ageMs = Date.now() - entry.savedAt;
+    if (ageMs > 7 * 24 * 60 * 60 * 1000) return null;
+    return entry;
+  } catch (e) { return null; }
+}
+
+function setCached(key, data) {
+  try {
+    localStorage.setItem(key, JSON.stringify({ savedAt: Date.now(), data }));
+  } catch (e) { /* ignore */ }
+}
+
 aiBtn.addEventListener('click', async () => {
   const d = readForm();
   if (!d.year || !d.make || !d.model) { showAiError('Fill in year, make, and model first.'); return; }
 
   aiError.classList.remove('active');
   aiResult.classList.remove('active');
+
+  const key = cacheKeyFor(d);
+  const cached = getCached(key);
+  if (cached) {
+    renderAiResult(cached.data, d, cached.savedAt);
+    return;
+  }
+
   aiBtn.disabled = true;
   aiStatus.classList.add('active');
   const spin = cycleAiStatus();
@@ -721,7 +752,8 @@ aiBtn.addEventListener('click', async () => {
     } else if (parsed.error) {
       showAiError(parsed.error, parsed.detail || null);
     } else {
-      renderAiResult(parsed, d);
+      setCached(key, parsed);
+      renderAiResult(parsed, d, Date.now());
     }
   } catch (err) {
     showAiError("Couldn't reach the valuation service.", err.message);
