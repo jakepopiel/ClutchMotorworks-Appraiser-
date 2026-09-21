@@ -544,10 +544,29 @@ function fallbackCopy(text, done) {
   done();
 }
 
-function renderAiResult(data, vehicle) {
+function renderAiResult(data, vehicle, savedAt) {
   aiResult.innerHTML = '';
   lastSummary = data;
   lastVehicle = vehicle;
+
+  if (savedAt) {
+    const cacheNote = document.createElement('div');
+    cacheNote.style.cssText = 'display:flex; align-items:center; justify-content:space-between; gap:10px; font-size:12px; color: var(--ink-dim); margin-bottom: 12px;';
+    const ageMinutes = Math.round((Date.now() - savedAt) / 60000);
+    const ageText = ageMinutes < 1 ? 'just now' : ageMinutes < 60 ? ageMinutes + ' min ago' : Math.round(ageMinutes / 60) + ' hr ago';
+    const label = document.createElement('span');
+    label.textContent = 'Showing a saved result from ' + ageText + ' \u2014 same inputs give the same answer.';
+    const refreshBtn = document.createElement('button');
+    refreshBtn.className = 'mini';
+    refreshBtn.textContent = 'Get a fresh estimate';
+    refreshBtn.addEventListener('click', () => {
+      localStorage.removeItem(cacheKeyFor(vehicle));
+      aiBtn.click();
+    });
+    cacheNote.appendChild(label);
+    cacheNote.appendChild(refreshBtn);
+    aiResult.appendChild(cacheNote);
+  }
 
   const band = document.createElement('div');
   band.className = 'verdict-band ' + (data.verdict_tier || 'fair');
