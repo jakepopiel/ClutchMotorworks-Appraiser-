@@ -380,6 +380,91 @@ function digitsOnly(s) {
   return Number.isFinite(n) ? n : null;
 }
 
+// ============== QUICK PASTE / DICTATE PARSER ==============
+
+const MAKES = [
+  "acura","alfa romeo","aston martin","audi","bentley","bmw","buick","cadillac",
+  "chevrolet","chevy","chrysler","dodge","ferrari","fiat","ford","genesis","gmc",
+  "honda","hyundai","infiniti","jaguar","jeep","kia","lamborghini","land rover",
+  "lexus","lincoln","maserati","mazda","mclaren","mercedes-benz","mercedes","mini",
+  "mitsubishi","nissan","polestar","porsche","ram","rivian","rolls-royce","saab",
+  "scion","smart","subaru","suzuki","tesla","toyota","volkswagen","vw","volvo"
+];
+const MAKE_CANON = { "chevy": "Chevrolet", "vw": "Volkswagen", "mercedes": "Mercedes-Benz" };
+const TRIM_WORDS = [
+  "sle","slt","denali","lariat","xlt","xl","limited","sport","touring","platinum",
+  "sr5","trd","se","le","xle","ex","ex-l","lx","si","type r","gt","gti","rs","sti",
+  "premium","luxury","base","work truck","wt","ltz","lt","ls","z71","trail boss",
+  "rubicon","sahara","laredo","overland","big horn","tradesman","longhorn"
+];
+
+function titleCaseWord(s) {
+  return s.replace(/\w\S*/g, w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase());
+}
+
+function parseQuickText(text) {
+  const lower = text.toLowerCase();
+  const result = { year: '', make: '', model: '', trim: '', mileage: '', price: '' };
+
+  const yearMatch = text.match(/\b(19[8-9]\d|20[0-4]\d)\b/);
+  if (yearMatch) result.year = yearMatch[1];
+
+  let makeIndex = -1, makeRaw = null;
+  MAKES.forEach(m => {
+    const idx = lower.indexOf(m);
+    if (idx !== -1 && (makeIndex === -1 || idx < makeIndex)) { makeIndex = idx; makeRaw = m; }
+  });
+
+  if (makeRaw) {
+    result.make = MAKE_CANON[makeRaw] || titleCaseWord(makeRaw);
+    const afterMake = text.slice(makeIndex + makeRaw.length);
+    const modelMatch = afterMake.match(/^[\s,-]*([A-Za-z0-9][\w-]*(?:\s+[A-Za-z0-9][\w-]*)?)/);
+    if (modelMatch) {
+      let candidate = modelMatch[1].trim().replace(/[.,;:!]+$/, '');
+      const stopwords = ["for","sale","with","only","clean","title","miles","mi","asking","price","runs","drives","great","good","excellent"];
+      const words = candidate.split(/\s+/).filter(w => !stopwords.includes(w.toLowerCase()));
+      if (words.length) result.model = words.join(' ');
+    }
+  }
+
+  for (const t of TRIM_WORDS) {
+    const re = new RegExp('\\b' + t.replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&') + '\\b', 'i');
+    const m = text.match(re);
+    if (m) { result.trim = m[0].toUpperCase().length <= 4 ? m[0].toUpperCase() : titleCaseWord(m[0]); break; }
+  }
+
+  const mileageMatch = text.match(/([\d,]{2,3}(?:,\d{3})*|\d+)\s*(?:k\b)?\s*(?:miles|mi\b)/i)
+    || text.match(/(\d{2,3})\s*k\s*(?:miles|mi)?/i);
+  if (mileageMatch) {
+    let raw = mileageMatch[1].replace(/,/g, '');
+    let num = parseInt(raw, 10);
+    if (/k/i.test(mileageMatch[0]) && num < 1000) num *= 1000;
+    result.mileage = String(num);
+  }
+
+  const priceMatch = text.match(/\$\s?([\d,]{3,7})/);
+  if (priceMatch) result.price = priceMatch[1].replace(/,/g, '');
+
+  return result;
+}
+
+$('quickFillBtn').addEventListener('click', () => {
+  const text = $('quickText').value.trim();
+  if (!text) return;
+  const parsed = parseQuickText(text);
+
+  $('year').value = parsed.year || $('year').value;
+  $('make').value = parsed.make || $('make').value;
+  $('model').value = parsed.model || $('model').value;
+  $('trim').value = parsed.trim || $('trim').value;
+  $('mileage').value = parsed.mileage || $('mileage').value;
+  $('price').value = parsed.price || $('price').value;
+  $('condition').value = text;
+
+  $('formError').classList.remove('active');
+  $('year').scrollIntoView({ behavior: 'smooth', block: 'center' });
+});
+
 function readForm() {
   return {
     year: $('year').value.trim(),
