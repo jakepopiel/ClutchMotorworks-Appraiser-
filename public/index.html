@@ -215,7 +215,16 @@
     <p>Fill in what the listing tells you. You'll get direct links to Kelley Blue Book, Edmunds, and J.D. Power (NADA), plus a summary that checks current market data and says whether the asking price holds up.</p>
   </header>
 
-  <div class="panel">
+   <div class="panel">
+    <div class="field full" style="margin-bottom: 18px;">
+      <label for="quickText">Paste or dictate the listing <span class="opt">optional shortcut</span></label>
+      <textarea id="quickText" placeholder="Tap your keyboard's mic button and read the listing out loud, or paste the text here — 2016 GMC Sierra 1500, 194,000 miles, asking $9,500, runs great, clean title..." style="min-height: 90px;"></textarea>
+      <div class="row" style="margin-top: 10px;">
+        <div class="hint">This fills in the fields below — check them over before looking it up.</div>
+        <button class="mini" id="quickFillBtn" type="button">Fill in fields below</button>
+      </div>
+    </div>
+
     <div class="grid">
       <div class="field">
         <label for="year">Year</label>
